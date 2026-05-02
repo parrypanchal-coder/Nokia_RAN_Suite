@@ -392,43 +392,6 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
 </div>
 
 <!-- ═══ ADMIN BOOTSTRAP MODAL (accessible before login) ═══ -->
-<!-- Admin Login Modal (lock screen shortcut) -->
-<div class="modal-bg" id="adminLoginModal" style="z-index:99999;display:none">
-  <div class="modal-box" style="max-width:400px">
-    <div class="modal-hd">
-      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">🛡 Admin Panel Access</span>
-      <button type="button" class="modal-close" onclick="closeAdminLogin()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="font-size:.76rem;color:var(--t2);margin-bottom:16px;line-height:1.6">
-        Sign in as admin to access the Admin Panel — manage users, view activity logs and configure integrations.
-      </div>
-      <div class="form-group">
-        <label>Admin Username</label>
-        <input type="text" class="form-input" id="alUser" placeholder="admin" value="admin">
-      </div>
-      <div class="form-group">
-        <label>Admin Password</label>
-        <input type="password" class="form-input" id="alPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')doAdminLogin()">
-      </div>
-      <div class="lock-err" id="alErr" style="margin-bottom:8px"></div>
-      <button type="button" class="btn btn-primary" onclick="doAdminLogin()" style="width:100%;justify-content:center">🔐 Sign In as Admin</button>
-    </div>
-  </div>
-</div>
-  </div>
-</div>
-
-<!-- Preview Modal -->
-<div class="modal-bg" id="previewModal">
-  <div class="modal-box">
-    <div class="modal-hd">
-      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">Change Preview</span>
-      <button type="button" class="modal-close" onclick="document.getElementById('previewModal').classList.remove('open')">✕</button>
-    </div>
-    <div class="modal-body" id="previewBody"></div>
-  </div>
-</div>
 
 <div class="prog-ov" id="progOv">
   <div style="font-size:.92rem;font-weight:600;font-family:var(--display)" id="progT">Processing…</div>
@@ -780,7 +743,7 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
           <div class="card-bd" style="padding:12px 16px">
             <div class="alert alert-i" style="margin-bottom:12px">
               <span>ℹ</span>
-              <span>Add users here to generate credentials. Copy them into <strong>RAN_Users.xlsx</strong> on OneDrive — or click <strong>Export xlsx</strong> to download the full list and upload to OneDrive.</span>
+              <span>Add users here to generate credentials. Copy them into the <strong>Users</strong> tab of your Google Sheet — or click <strong>Export xlsx</strong> to download the list and paste into Google Sheets.</span>
             </div>
             <div id="userMgrList" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto"></div>
             <div id="userMgrEmpty" style="text-align:center;padding:24px;color:var(--t3);font-family:var(--mono);font-size:.72rem">No users generated yet — click + Add User to create credentials</div>
@@ -851,27 +814,73 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- Generate Token Modal -->
-<div class="modal-bg" id="genModal">
-  <div class="modal-box">
+<!-- Add User Modal -->
+<div class="modal-bg" id="addUserModal" style="display:none;z-index:900">
+  <div class="modal-box" style="max-width:520px">
     <div class="modal-hd">
-      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">Generate New Token</span>
-      <button type="button" class="modal-close" onclick="closeGenModal()">✕</button>
+      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">👤 Add New User</span>
+      <button type="button" class="modal-close" onclick="closeAddUser()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Username / Recipient</label><input type="text" class="form-input" id="genUser" placeholder="e.g. john.doe"></div>
-      <div class="form-group"><label>Expiry Date</label><input type="date" class="form-input" id="genExpiry"></div>
-      <div class="form-group"><label>Notes (optional)</label><input type="text" class="form-input" id="genNotes" placeholder="e.g. Field engineer — NY region"></div>
-      <button type="button" class="btn btn-primary" onclick="adminGenToken()" style="width:100%;justify-content:center;margin-bottom:14px">Generate Token</button>
-      <div id="genResult" style="display:none">
-        <div class="sdiv"></div>
-        <div style="font-size:.7rem;font-family:var(--mono);color:var(--t3);margin-bottom:6px">Generated Token (share with user):</div>
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--s3);border:1px solid var(--b1);border-radius:8px">
-          <span style="font-family:var(--mono);font-size:.75rem;color:var(--cyan);flex:1;word-break:break-all" id="genTokenVal"></span>
-          <button class="copy-btn" onclick="copyGenToken()">Copy</button>
-        </div>
-        <div style="font-size:.68rem;color:var(--t3);font-family:var(--mono);margin-top:8px">⚠ Copy this token now — it cannot be recovered later.</div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" class="form-input" id="auUser" placeholder="e.g. john.doe">
       </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="form-input" id="auRole" style="cursor:pointer">
+          <option value="User">User</option>
+          <option value="Engineer">Engineer</option>
+          <option value="Viewer">Viewer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" class="form-input" id="auNotes" placeholder="e.g. Field Engineer NY">
+      </div>
+      <div style="padding:12px 14px;background:var(--s3);border:1px solid var(--b1);border-radius:8px;margin-bottom:14px">
+        <div style="font-size:.65rem;font-family:var(--mono);color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Auto-generated Password</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--mono);font-size:.85rem;color:var(--cyan);flex:1;letter-spacing:.05em" id="auPwPreview">—</span>
+          <button type="button" class="copy-btn" onclick="auRefreshPw()">↻ New</button>
+        </div>
+        <div style="font-size:.62rem;color:var(--t3);font-family:var(--mono);margin-top:5px">Strong random password — share with user via Webex or email</div>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="auCreate()" style="width:100%;justify-content:center;margin-bottom:14px">✓ Create User</button>
+      <div id="auResult" style="display:none">
+        <div style="height:1px;background:var(--b1);margin-bottom:14px"></div>
+        <div style="font-size:.7rem;font-family:var(--mono);color:var(--green);font-weight:600;margin-bottom:8px">✅ User created — share these credentials:</div>
+        <div style="padding:14px;background:var(--s3);border:1px solid rgba(16,185,129,.3);border-radius:8px;font-family:var(--mono);font-size:.78rem;line-height:2">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <span style="color:var(--t3)">Username: </span><span style="color:var(--t1);font-weight:600" id="auResUser"></span><br>
+              <span style="color:var(--t3)">Password: </span><span style="color:var(--cyan);font-weight:600" id="auResPw"></span><br>
+              <span style="color:var(--t3)">Role:     </span><span style="color:var(--t2)" id="auResRole"></span>
+            </div>
+            <button class="copy-btn" onclick="auCopyCredentials()" style="align-self:flex-start">Copy All</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:9px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;font-size:.68rem;font-family:var(--mono);color:var(--amber)">
+          ⚠ Also add this user to the <strong>Users tab</strong> in your Google Sheet so they can log in from any computer.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Login Modal -->
+<div class="modal-bg" id="adminLoginModal" style="z-index:99999;display:none">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-hd">
+      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">🛡 Admin Panel Access</span>
+      <button type="button" class="modal-close" onclick="closeAdminLogin()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.76rem;color:var(--t2);margin-bottom:16px;line-height:1.6">Sign in as admin to manage users, view activity logs and configure integrations.</div>
+      <div class="form-group"><label>Admin Username</label><input type="text" class="form-input" id="alUser" value="admin"></div>
+      <div class="form-group"><label>Admin Password</label><input type="password" class="form-input" id="alPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+      <div class="lock-err" id="alErr" style="margin-bottom:8px"></div>
+      <button type="button" class="btn btn-primary" onclick="doAdminLogin()" style="width:100%;justify-content:center">🔐 Sign In as Admin</button>
     </div>
   </div>
 </div>
@@ -1689,7 +1698,7 @@ async function edDoExcel(){
   var logData=ED.applyLog.length>0?ED.applyLog:ED.staged.reduce(function(arr,ch){
     ch.affectedFiles.filter(function(fi){return ED.files[fi]&&ED.files[fi].enabled;}).forEach(function(fi){arr.push({filename:ED.files[fi].name,runTime:'(pending)',moPath:'(see normalized)',moPathNorm:ch.normPath,parameter:ch.paramName,oldValue:ch.oldVal,newValue:ch.newVal,status:'Pending'});});return arr;
   },[]);
-  var rows=[['Nokia RAN Parameter Suite R1.0 — Change Audit Report'],['Generated:',now],['User:',SESSION.username],['Tool:','Parameter Editor'],['Contact:','Paresh.Panchal@Spectrum.com'],[],['File Name','Run Time','MO Path (Actual)','MO Path (Normalized)','Parameter','Old Value','New Value','Status']].concat(logData.map(function(r){return[r.filename,r.runTime,r.moPath,r.moPathNorm,r.parameter,r.oldValue,r.newValue,r.status];}));
+  var rows=[['Nokia RAN Parameter Suite R3.0 — Change Audit Report'],['Generated:',now],['User:',SESSION.username],['Tool:','Parameter Editor'],['Contact:','Paresh.Panchal@Spectrum.com'],[],['File Name','Run Time','MO Path (Actual)','MO Path (Normalized)','Parameter','Old Value','New Value','Status']].concat(logData.map(function(r){return[r.filename,r.runTime,r.moPath,r.moPathNorm,r.parameter,r.oldValue,r.newValue,r.status];}));
   var ws1=XLSX.utils.aoa_to_sheet(rows);ws1['!cols']=[{wch:44},{wch:22},{wch:68},{wch:64},{wch:28},{wch:22},{wch:22},{wch:12}];ws1['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}}];ws1['!freeze']={xSplit:0,ySplit:7};
   XLSX.utils.book_append_sheet(wb,ws1,'Change Log');
   var s2rows=[['File Summary'],[],['File Name','Enabled','Changes','MO Paths','Status']].concat(ED.files.map(function(f,i){var isEn=f.enabled,chCnt=ED.staged.filter(function(ch){return ch.affectedFiles.indexOf(i)>=0;}).length,mc=Object.values(ED.moIdx).filter(function(es){return es.some(function(e){return e.fileIdx===i;});}).length;return[f.name,isEn?'Yes':'No',chCnt,mc,!isEn?'Excluded':chCnt>0?'Updated':'Unchanged'];}));
@@ -1867,7 +1876,7 @@ async function cmpExport(rows,base){
   if(!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
   var wb=XLSX.utils.book_new(),now=new Date().toLocaleString();
   var hdr=['Path (distName)','Parameter'].concat(C.fileOrder);
-  var data=[['Nokia RAN Parameter Suite R1.0 — XML Comparison Report'],['Generated: '+now+' | User: '+SESSION.username],['© 2026 Charter / Spectrum — Network Technology Services'],[],hdr].concat(rows.map(function(row){return[row.path,row.param].concat(C.fileOrder.map(function(fn){return row.vals[fn]===null?'— missing —':row.vals[fn];}));}));
+  var data=[['Nokia RAN Parameter Suite R3.0 — XML Comparison Report'],['Generated: '+now+' | User: '+SESSION.username],['© 2026 Charter / Spectrum — Network Technology Services'],[],hdr].concat(rows.map(function(row){return[row.path,row.param].concat(C.fileOrder.map(function(fn){return row.vals[fn]===null?'— missing —':row.vals[fn];}));}));
   var ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:55},{wch:32}].concat(C.fileOrder.map(function(){return{wch:28};}));ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:1+C.fileOrder.length}}];ws['!freeze']={xSplit:2,ySplit:5};
   XLSX.utils.book_append_sheet(wb,ws,'Comparison');
   var wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
@@ -1940,49 +1949,104 @@ function genPassword(){
 }
 
 function showAddUser(){
-  $('auUser').value=''; $('auNotes').value=''; $('auResult').style.display='none';
+  var modal = $('addUserModal');
+  if(!modal){ toast('User Manager modal not found.','err'); return; }
+  var auUser=$('auUser'); if(auUser) auUser.value='';
+  var auNotes=$('auNotes'); if(auNotes) auNotes.value='';
+  var auResult=$('auResult'); if(auResult) auResult.style.display='none';
+  var auRole=$('auRole'); if(auRole) auRole.value='User';
   auRefreshPw();
-  $('addUserModal').style.display='flex';
+  modal.style.display='flex';
+  setTimeout(function(){ var u=$('auUser'); if(u) u.focus(); }, 100);
 }
-function closeAddUser(){ $('addUserModal').style.display='none'; }
-function auRefreshPw(){ $('auPwPreview').textContent = genPassword(); }
+function closeAddUser(){
+  var m=$('addUserModal'); if(m) m.style.display='none';
+}
+function auRefreshPw(){
+  var el=$('auPwPreview');
+  if(el) el.textContent = genPassword();
+}
 function auPreview(){ /* live preview placeholder */ }
 
 function auCreate(){
-  var user = ($('auUser').value||'').trim();
-  var pw   = $('auPwPreview').textContent.trim();
-  var role = $('auRole').value;
-  var notes= $('auNotes').value.trim();
+  var userEl  = $('auUser');
+  var pwEl    = $('auPwPreview');
+  var roleEl  = $('auRole');
+  var notesEl = $('auNotes');
+  if(!userEl||!pwEl){ toast('Modal elements missing — please reload.','err'); return; }
+  var user  = (userEl.value||'').trim();
+  var pw    = (pwEl.textContent||'').trim();
+  var role  = roleEl ? roleEl.value : 'User';
+  var notes = notesEl ? notesEl.value.trim() : '';
   if(!user){ toast('Username is required.','err'); return; }
-  if(!pw||pw==='—'){ auRefreshPw(); pw=$('auPwPreview').textContent; }
+  if(!pw || pw==='—'){ auRefreshPw(); pw=($('auPwPreview').textContent||'').trim(); }
+  if(!pw){ toast('Could not generate password — try again.','err'); return; }
+  // Check for duplicate username
+  var existing = _userList.find(function(u){ return u.username.toLowerCase()===user.toLowerCase(); });
+  if(existing){ toast('Username "'+user+'" already exists in this list.','err'); return; }
   var entry = { username:user, password:pw, role:role, notes:notes,
                 active:'Yes', created:new Date().toISOString() };
   _userList.push(entry);
   setLs('ran_userlist', _userList);
   // Show result
-  $('auResUser').textContent = user;
-  $('auResPw').textContent   = pw;
-  $('auResRole').textContent = role;
-  $('auResult').style.display='';
+  var ru=$('auResUser'),rp=$('auResPw'),rr=$('auResRole'),res=$('auResult');
+  if(ru) ru.textContent = user;
+  if(rp) rp.textContent = pw;
+  if(rr) rr.textContent = role;
+  if(res) res.style.display='';
   renderUserMgrList();
-  toast('User "'+user+'" created — copy credentials below','ok');
-  // Reset form for next user
-  $('auUser').value=''; $('auNotes').value=''; auRefreshPw();
+  toast('User "'+user+'" created','ok');
+  // Reset for next user
+  if(userEl) userEl.value='';
+  if(notesEl) notesEl.value='';
+  auRefreshPw();
 }
 
 function auCopyCredentials(){
-  var user = $('auResUser').textContent;
-  var pw   = $('auResPw').textContent;
-  var role = $('auResRole').textContent;
+  var ru=$('auResUser'),rp=$('auResPw'),rr=$('auResRole');
+  var user = ru?ru.textContent:'';
+  var pw   = rp?rp.textContent:'';
+  var role = rr?rr.textContent:'User';
   var text = 'NOKIA RAN Parameter Suite — Login Credentials\n'
            + 'Username: '+user+'\n'
            + 'Password: '+pw+'\n'
            + 'Role:     '+role+'\n'
-           + 'URL:      [share the tool URL here]\n'
-           + 'Note:     Also add to RAN_Users.xlsx on OneDrive';
+           + 'URL:      '+window.location.href+'\n'
+           + 'Note:     Also add this user to the Google Sheet Users tab.';
   navigator.clipboard.writeText(text)
-    .then(function(){ toast('Credentials copied to clipboard — paste into email/Webex','ok'); })
+    .then(function(){ toast('Credentials copied — paste into Webex or email','ok'); })
     .catch(function(){ toast('Copy manually from the box.','inf'); });
+}
+
+function umCopy(i){
+  var u=_userList[i]; if(!u) return;
+  var text='Username: '+u.username+'\nPassword: '+u.password+'\nRole: '+u.role;
+  navigator.clipboard.writeText(text)
+    .then(function(){ toast('Copied: '+u.username,'ok'); })
+    .catch(function(){ toast('Copy manually.','inf'); });
+}
+
+function umDelete(i){
+  if(!confirm('Remove "'+(_userList[i]||{username:'?'}).username+'" from local list?')) return;
+  _userList.splice(i,1); setLs('ran_userlist',_userList);
+  renderUserMgrList(); toast('Removed.','inf');
+}
+
+async function umExportToExcel(){
+  if(!_userList.length){ toast('No users to export.','err'); return; }
+  if(!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  var wb=XLSX.utils.book_new();
+  var rows=[['Username','Password','Role','Active','Notes']].concat(
+    _userList.map(function(u){return[u.username,u.password,u.role||'User','Yes',u.notes||''];}));
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:22},{wch:18},{wch:12},{wch:8},{wch:36}];
+  XLSX.utils.book_append_sheet(wb,ws,'Users');
+  var wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  var blob=new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url; a.download='RAN_Users_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  a.click(); URL.revokeObjectURL(url);
+  toast('Downloaded — paste into Google Sheets Users tab','ok');
 }
 
 function renderUserMgrList(){
@@ -2036,7 +2100,7 @@ async function adminExportTracker(){
   if(!log.length){toast('No log entries.','err');return;}
   if(!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
   var wb=XLSX.utils.book_new(),now=new Date().toLocaleString();
-  var rows=[['Nokia RAN Parameter Suite R1.0 — Usage Tracker'],['Exported: '+now],['Total Entries: '+log.length],[],['#','Timestamp','Username','Tool','Action','File Names','Parameter Changed','MO Path','Old Value','New Value','Downloads']].concat(log.map(function(r,i){return[i+1,fmtTs(r.ts),r.username,r.tool,r.action,r.fileNames,r.paramName,r.moPath,r.oldVal,r.newVal,r.downloads||0];}));
+  var rows=[['Nokia RAN Parameter Suite R3.0 — Usage Tracker'],['Exported: '+now],['Total Entries: '+log.length],[],['#','Timestamp','Username','Tool','Action','File Names','Parameter Changed','MO Path','Old Value','New Value','Downloads']].concat(log.map(function(r,i){return[i+1,fmtTs(r.ts),r.username,r.tool,r.action,r.fileNames,r.paramName,r.moPath,r.oldVal,r.newVal,r.downloads||0];}));
   var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:5},{wch:22},{wch:18},{wch:20},{wch:18},{wch:50},{wch:28},{wch:60},{wch:22},{wch:22},{wch:12}];ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:10}}];ws['!freeze']={xSplit:0,ySplit:5};
   XLSX.utils.book_append_sheet(wb,ws,'Usage Log');
   // Token summary sheet
@@ -2123,12 +2187,16 @@ async function doAdminLogin(){
 function openAdminBootstrap(){ openAdminLogin(); }
 function closeBootstrap(){ closeAdminLogin(); }
 document.addEventListener('click',function(e){
-  if(e.target.id==='genModal') closeGenModal();
-  if(e.target.id==='previewModal') $('previewModal').classList.remove('open');
-  if(e.target.id==='adminLoginModal') $('adminLoginModal').style.display='none';
+  if(e.target.id==='addUserModal')    closeAddUser();
+  if(e.target.id==='previewModal')    $('previewModal').classList.remove('open');
+  if(e.target.id==='adminLoginModal') closeAdminLogin();
 });
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){closeGenModal();$('previewModal').classList.remove('open');closeAdminLogin();}
+  if(e.key==='Escape'){
+    closeAddUser();
+    var pm=$('previewModal'); if(pm) pm.classList.remove('open');
+    closeAdminLogin();
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════

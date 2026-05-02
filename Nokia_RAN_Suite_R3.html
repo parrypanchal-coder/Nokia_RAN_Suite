@@ -377,7 +377,12 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
     <div class="lock-err" id="loginErr"></div>
     <button class="btn btn-primary" onclick="doLogin()">🔓 Unlock Tool</button>
     <div style="margin-top:10px;text-align:center">
-      <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:.75rem" onclick="openAdminBootstrap()">🛡 Admin Access (token management)</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <div style="flex:1;height:1px;background:var(--b1)"></div>
+        <span style="font-size:.65rem;color:var(--t3);font-family:var(--mono)">ADMIN</span>
+        <div style="flex:1;height:1px;background:var(--b1)"></div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:.75rem;margin-top:6px" onclick="openAdminLogin()">🛡 Admin Panel</button>
     </div>
     <div class="lock-footer">
       Token required · Contact <a href="mailto:Paresh.Panchal@Spectrum.com">Paresh.Panchal@Spectrum.com</a><br>
@@ -387,529 +392,30 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
 </div>
 
 <!-- ═══ ADMIN BOOTSTRAP MODAL (accessible before login) ═══ -->
-<div class="modal-bg" id="bootstrapModal" style="z-index:99999;display:none">
-  <div class="modal-box" style="max-width:480px">
+<!-- Admin Login Modal (lock screen shortcut) -->
+<div class="modal-bg" id="adminLoginModal" style="z-index:99999;display:none">
+  <div class="modal-box" style="max-width:400px">
     <div class="modal-hd">
-      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">🛡 Admin — User Setup</span>
-      <button type="button" class="modal-close" onclick="closeBootstrap()">✕</button>
+      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">🛡 Admin Panel Access</span>
+      <button type="button" class="modal-close" onclick="closeAdminLogin()">✕</button>
     </div>
     <div class="modal-body">
-      <div id="bootstrapAuthWrap">
-        <div style="font-size:.76rem;color:var(--t2);margin-bottom:16px;line-height:1.6">Enter admin credentials to generate or manage access tokens. Users need a token to log in to the tool.</div>
-        <div class="form-group"><label>Admin Password</label><input type="password" class="form-input" id="bsPwInput" placeholder="Admin password"></div>
-        <div class="form-group"><label>Admin PIN</label><input type="password" class="form-input" id="bsPinInput" placeholder="PIN" maxlength="6" onkeydown="if(event.key==='Enter')bsLogin()"></div>
-        <div class="lock-err" id="bsErr"></div>
-        <button type="button" class="btn btn-primary" onclick="bsLogin()" style="width:100%;justify-content:center">Enter Admin</button>
+      <div style="font-size:.76rem;color:var(--t2);margin-bottom:16px;line-height:1.6">
+        Sign in as admin to access the Admin Panel — manage users, view activity logs and configure integrations.
       </div>
-      <div id="bootstrapPanelWrap" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div style="font-size:.76rem;color:var(--t2)">Generate tokens for users, or copy existing ones.</div>
-          <button type="button" class="btn btn-primary btn-sm" onclick="showBsGenForm()">+ New Token</button>
-        </div>
-        <!-- Add user form -->
-        <div id="bsGenForm" style="display:none;padding:14px;background:var(--s3);border:1px solid var(--b1);border-radius:8px;margin-bottom:14px">
-          <div class="form-group"><label>Username</label><input type="text" class="form-input" id="bsGenUser" placeholder="e.g. john.doe" style="font-size:.78rem;padding:7px 10px"></div>
-          <div class="form-group" style="margin-bottom:10px"><label>Notes (optional)</label><input type="text" class="form-input" id="bsGenNotes" placeholder="e.g. Field Engineer NY" style="font-size:.78rem;padding:7px 10px"></div>
-          <button type="button" class="btn btn-primary btn-sm" onclick="bsGenToken()" style="width:100%;justify-content:center">Generate Password & Add User</button>
-          <div id="bsGenResult" style="display:none;margin-top:12px">
-            <div style="font-size:.68rem;color:var(--t3);font-family:var(--mono);margin-bottom:5px">✅ User created — copy credentials:</div>
-            <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--s1);border:1px solid rgba(16,185,129,.3);border-radius:7px">
-              <span style="font-family:var(--mono);font-size:.7rem;color:var(--cyan);flex:1;word-break:break-all" id="bsTokenOut"></span>
-              <button class="copy-btn" onclick="bsCopyToken()">Copy</button>
-            </div>
-            <div style="font-size:.65rem;color:var(--amber);font-family:var(--mono);margin-top:6px">⚠ Also add this user to RAN_Users.xlsx on OneDrive so they can log in from any computer.</div>
-          </div>
-        </div>
-        <!-- Token list -->
-        <div style="font-size:.68rem;font-family:var(--mono);color:var(--t3);margin-bottom:6px" id="bsTokenCount"></div>
-        <div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:4px" id="bsTokenList"></div>
+      <div class="form-group">
+        <label>Admin Username</label>
+        <input type="text" class="form-input" id="alUser" placeholder="admin" value="admin">
       </div>
+      <div class="form-group">
+        <label>Admin Password</label>
+        <input type="password" class="form-input" id="alPass" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      </div>
+      <div class="lock-err" id="alErr" style="margin-bottom:8px"></div>
+      <button type="button" class="btn btn-primary" onclick="doAdminLogin()" style="width:100%;justify-content:center">🔐 Sign In as Admin</button>
     </div>
   </div>
 </div>
-
-<!-- ═══ EXPIRY SCREEN ═══ -->
-<div id="expiryScreen" style="display:none">
-  <div class="expiry-card">
-    <div class="expiry-icon">🔒</div>
-    <div class="expiry-title">Access Token Expired</div>
-    <div class="expiry-msg" id="expiryMsg">Your access token has expired. All features are disabled until a new token is issued.</div>
-    <div class="expiry-contact">
-      Contact your administrator to renew access:<br>
-      <a href="mailto:Paresh.Panchal@Spectrum.com">Paresh.Panchal@Spectrum.com</a><br>
-      Network Technology Services — Charter / Spectrum
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     MAIN APP
-═══════════════════════════════════════════ -->
-<div id="app" style="display:none">
-
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-mark">
-        <div class="logo-icon">⚙</div>
-        <div><div class="logo-name">NOKIA RAN</div><div class="logo-name" style="color:#60a5fa">Parameter Suite</div></div>
-      </div>
-      <div class="logo-ver">R1.0 · Charter / Spectrum · NTS</div>
-    </div>
-    <div class="sidebar-user">
-      <div class="user-avatar" id="userAvatar">?</div>
-      <div style="flex:1;min-width:0">
-        <div class="user-name" id="userNameDisplay">—</div>
-        <div style="font-family:var(--mono);font-size:.58rem;color:rgba(255,255,255,.35)" id="tokenExpDisplay">—</div>
-      </div>
-      <div class="user-badge" id="userBadge">Active</div>
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-section">Tools</div>
-      <div class="nav-item active" onclick="navTo('dashboard')" id="nav-dashboard">
-        <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
-      </div>
-      <div class="nav-item" onclick="navTo('editor')" id="nav-editor">
-        <span class="nav-icon">⚙</span><span class="nav-label">Parameter Editor</span>
-      </div>
-      <div class="nav-item" onclick="navTo('comparator')" id="nav-comparator">
-        <span class="nav-icon">🔍</span><span class="nav-label">XML Comparator</span>
-      </div>
-      <div class="nav-section">System</div>
-      <div class="nav-item" onclick="navTo('admin')" id="nav-admin">
-        <span class="nav-icon">🛡</span><span class="nav-label">Admin Panel</span>
-      </div>
-      <div class="nav-item" onclick="doLogout()" style="margin-top:4px">
-        <span class="nav-icon">↩</span><span class="nav-label">Sign Out</span>
-      </div>
-    </nav>
-    <div class="sidebar-footer">
-      <button class="theme-toggle" onclick="toggleTheme()">
-        <span id="themeLabel">Dark Mode</span>
-        <div class="theme-knob"></div>
-      </button>
-      <div class="sidebar-cp" style="margin-top:10px">
-        © 2026 Charter / Spectrum<br>Network Technology Services<br>
-        <a href="mailto:Paresh.Panchal@Spectrum.com">Paresh.Panchal@Spectrum.com</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN -->
-  <div class="main">
-    <div class="topbar">
-      <div>
-        <div class="topbar-title" id="topbarTitle">Dashboard</div>
-        <div class="topbar-sub">NOKIA RAN Parameter Suite R1.0</div>
-      </div>
-      <div class="topbar-right">
-        <div class="topbar-token-info" id="topbarTokenInfo">Token: Active</div>
-      </div>
-    </div>
-
-    <!-- ═══ DASHBOARD PAGE ═══ -->
-    <div class="page active" id="page-dashboard">
-      <div class="dash-hero">
-        <div class="dash-hero-tag">Charter / Spectrum · Network Technology Services · R1.0</div>
-        <div class="dash-hero-title">NOKIA RAN <span>Parameter Suite</span></div>
-        <div class="dash-hero-desc">Production-grade toolkit for Nokia RAML XML configuration management. Edit parameters across multiple files simultaneously, or compare configurations to identify inconsistencies.</div>
-      </div>
-      <div class="tool-cards">
-        <div class="tool-card" style="--tc:var(--blue)" onclick="navTo('editor')">
-          <div class="tool-card-icon">⚙</div>
-          <div class="tool-card-title">Parameter Editor</div>
-          <div class="tool-card-desc">Load XML or ZIP/7z archives, select MO paths and parameters, stage changes and apply them across all files simultaneously. Generates full Excel audit trail.</div>
-          <div class="tool-card-arrow">→</div>
-        </div>
-        <div class="tool-card" style="--tc:var(--cyan)" onclick="navTo('comparator')">
-          <div class="tool-card-icon">🔍</div>
-          <div class="tool-card-title">XML Comparator</div>
-          <div class="tool-card-desc">Upload a ZIP of Nokia RAML XML files and instantly compare all parameters across every file. Highlights inconsistencies and exports detailed Excel diff reports.</div>
-          <div class="tool-card-arrow">→</div>
-        </div>
-      </div>
-      <div class="dash-stats">
-        <div class="stat-box" style="--col:var(--blue)"><div class="stat-n" id="ds-sessions">0</div><div class="stat-l">Total Sessions</div></div>
-        <div class="stat-box" style="--col:var(--cyan)"><div class="stat-n" id="ds-edits">0</div><div class="stat-l">Parameter Changes</div></div>
-        <div class="stat-box" style="--col:var(--green)"><div class="stat-n" id="ds-compares">0</div><div class="stat-l">Comparisons Run</div></div>
-        <div class="stat-box" style="--col:var(--amber)"><div class="stat-n" id="ds-downloads">0</div><div class="stat-l">Files Downloaded</div></div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════
-         PARAMETER EDITOR PAGE
-    ═══════════════════════════════════════════ -->
-    <div class="page" id="page-editor">
-      <div class="editor-grid">
-        <div style="display:flex;flex-direction:column;gap:16px">
-
-          <!-- Load Files -->
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">① Load XML / ZIP / 7Z Files</div><div class="chip" id="fcBadge">0 files</div></div>
-            <div class="card-bd">
-              <div class="dz" id="edDz">
-                <span class="dz-arr">⬆</span>
-                <div class="dz-txt">Drop <strong>.xml</strong>, <strong>.zip</strong> or <strong>.7z</strong> &nbsp;·&nbsp; <strong style="color:var(--blue);cursor:pointer;text-decoration:underline" onclick="document.getElementById('edFi').click()">click to browse</strong></div>
-                <div class="dz-hint">Multiple files · ZIP &amp; 7-Zip auto-extracted · All processing local</div>
-              </div>
-              <input type="file" id="edFi" multiple accept=".xml,.zip,.7z" style="display:none">
-              <div id="flWrap" style="display:none">
-                <div class="fl-bar">
-                  <label><input type="checkbox" id="chkAll" checked onchange="edToggleAll(this.checked)"> Include all files</label>
-                  <span class="chip" id="fcBadge2">0</span>
-                </div>
-                <div class="flist" id="flist"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Select MO + Param -->
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">② Select MO Path &amp; Parameter</div></div>
-            <div class="card-bd">
-              <div class="alert alert-i" style="margin-bottom:14px">
-                <span>ℹ</span><span>Paths normalized — <span style="color:var(--amber)">AIOSC-{ID}</span> replaces per-file device IDs. One selection targets all loaded files.</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div>
-                  <div class="sel-lbl">MO Path (Managed Object)</div>
-                  <div class="combo-wrap">
-                    <div class="combo-search-row"><span class="combo-icon">⌕</span><input type="text" id="moSearch" class="combo-search" placeholder="Type to search MO paths…" oninput="edFilterMO()" autocomplete="off" disabled><span class="combo-count" id="moCount"></span></div>
-                    <select id="moSel" size="6" class="combo-select" disabled onchange="edPickMO(this.value)"><option value="">— Load files first —</option></select>
-                  </div>
-                </div>
-                <div>
-                  <div class="sel-lbl">Parameter Name</div>
-                  <div class="combo-wrap">
-                    <div class="combo-search-row"><span class="combo-icon">⌕</span><input type="text" id="paramSearch" class="combo-search" placeholder="Type to search parameters…" oninput="edFilterParam()" autocomplete="off" disabled><span class="combo-count" id="paramCount"></span></div>
-                    <select id="paramSel" size="6" class="combo-select" disabled onchange="edPickParam(this.value)"><option value="">— Select MO path first —</option></select>
-                  </div>
-                </div>
-              </div>
-              <div id="cvSection" style="display:none">
-                <div class="cvbox">
-                  <div class="cvbox-hd"><span>Current Values Across Files</span><span class="chip" id="cvCount"></span></div>
-                  <div class="cvbox-body" id="cvBody"></div>
-                </div>
-              </div>
-              <div id="nvSection" style="display:none">
-                <div class="sdiv"></div>
-                <div class="sel-lbl">New Value</div>
-                <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-                  <input type="text" class="nv-input" id="nvInput" placeholder="Enter replacement value…" oninput="edOnNV(this)">
-                  <div style="font-size:.65rem;font-family:var(--mono);color:var(--t3)" id="nvHint">Will update all enabled files</div>
-                  <div style="display:flex;justify-content:flex-end;gap:8px">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="edClearSel()">✕ Clear</button>
-                    <button type="button" class="btn btn-primary btn-sm" id="stageBtn" onclick="edStageChange()" disabled style="width:auto">+ Stage Change</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Staged Changes -->
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-hd-t">③ Staged Changes</div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="chip" id="stageBadge">0 changes</span>
-                <button type="button" class="btn btn-danger btn-sm" id="clearAllBtn" onclick="edClearAllStaged()" disabled>Clear All</button>
-              </div>
-            </div>
-            <div id="stagedBody" style="padding:0">
-              <div class="empty" style="padding:24px">
-                <div class="empty-ic">📋</div><div class="empty-t">No changes staged</div>
-                <div class="empty-s">Select MO path → parameter → enter new value → Stage Change.</div>
-              </div>
-            </div>
-          </div>
-        </div><!-- /left col -->
-
-        <!-- RIGHT SUMMARY -->
-        <div style="display:flex;flex-direction:column;gap:14px">
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">📊 Session Summary</div></div>
-            <div class="card-bd" style="display:flex;flex-direction:column;gap:12px">
-              <div class="stat-grid">
-                <div class="stat-box" style="--col:var(--blue)"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Files Loaded</div></div>
-                <div class="stat-box" style="--col:var(--amber)"><div class="stat-n" id="sStaged">0</div><div class="stat-l">Staged Changes</div></div>
-                <div class="stat-box" style="--col:var(--cyan)"><div class="stat-n" id="sMOs">0</div><div class="stat-l">MO Types</div></div>
-                <div class="stat-box" style="--col:var(--green)"><div class="stat-n" id="sParams">0</div><div class="stat-l">Parameters</div></div>
-              </div>
-              <div class="ring-wrap">
-                <svg width="68" height="68" viewBox="0 0 72 72"><circle class="ring-bg" cx="36" cy="36" r="29"/><circle class="ring-fg none" id="ringFg" cx="36" cy="36" r="29" stroke-dasharray="182.2" stroke-dashoffset="182.2"/><text class="ring-lbl" id="ringTxt" x="36" y="37">0/0</text></svg>
-                <div style="flex:1"><div class="ring-pct none" id="ringPct">—</div><div style="font-size:.7rem;color:var(--t2);margin-top:3px">Files will be updated</div><div class="ring-sub" id="ringSub">Stage a change to see coverage.</div></div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">📁 File Update Status</div><span class="chip" id="updChip">—</span></div>
-            <div class="card-bd" style="padding:10px"><div class="upd-list" id="updList"><div class="empty" style="padding:16px"><div class="empty-ic">📂</div><div class="empty-t">No files loaded</div></div></div></div>
-          </div>
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">⬇ Apply &amp; Download</div></div>
-            <div class="card-bd" style="display:flex;flex-direction:column;gap:9px">
-              <div id="dlHint" class="alert alert-i"><span>ℹ</span><span>Stage changes then apply.</span></div>
-              <div id="dlSum" style="display:none"></div>
-              <button type="button" class="btn btn-success" id="dlBtn" onclick="edDoApply()" disabled style="width:100%;justify-content:center">⚙ Apply &amp; Download ZIP</button>
-              <button type="button" class="btn btn-amber" id="xlBtn" onclick="edDoExcel()" disabled style="width:100%;justify-content:center">📊 Excel Audit Report</button>
-              <div style="display:flex;gap:8px">
-                <button type="button" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" id="prevBtn" onclick="edShowPreview()" disabled>👁 Preview</button>
-                <button type="button" class="btn btn-danger btn-sm" style="flex:1;justify-content:center" onclick="edResetAll()">🗑 Reset</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div><!-- /editor page -->
-
-    <!-- ═══════════════════════════════════════════
-         XML COMPARATOR PAGE
-    ═══════════════════════════════════════════ -->
-    <div class="page" id="page-comparator">
-      <div style="display:grid;grid-template-columns:1fr 340px;gap:18px;margin-bottom:20px">
-        <div class="card">
-          <div class="card-hd"><div class="card-hd-t">Load ZIP Archive</div></div>
-          <div class="card-bd">
-            <div class="dz" id="cmpDz">
-              <span class="dz-arr">📦</span>
-              <div class="dz-txt">Drop a <strong>.zip</strong> containing Nokia RAML XMLs &nbsp;·&nbsp; <strong style="color:var(--blue);cursor:pointer;text-decoration:underline" onclick="document.getElementById('cmpFi').click()">click to browse</strong></div>
-              <div class="dz-hint">All XML files inside the ZIP are automatically compared against each other</div>
-            </div>
-            <input type="file" id="cmpFi" accept=".zip" style="display:none">
-            <div id="cmpFilePill" style="display:none;margin-top:10px;padding:8px 12px;background:var(--s3);border:1px solid var(--b1);border-radius:7px;display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:.72rem">
-              <span>📦</span><span id="cmpFname" style="flex:1;color:var(--t2)"></span><span id="cmpFsize" style="color:var(--t3)"></span>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-hd"><div class="card-hd-t">Options</div></div>
-          <div class="card-bd" style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <input type="checkbox" id="chkNorm" checked>
-              <label for="chkNorm" style="font-size:.76rem;color:var(--t2);cursor:pointer">Normalize device IDs in paths</label>
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-              <label>ID Pattern (regex)</label>
-              <input type="text" class="form-input" id="idPattern" value="(?&lt;=AIOSC-)\d+" style="font-size:.72rem;padding:6px 10px">
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-              <label>Replacement</label>
-              <input type="text" class="form-input" id="idReplacement" value="XXXXXXXXX" style="font-size:.72rem;padding:6px 10px">
-            </div>
-            <button type="button" class="btn btn-primary" id="runBtn" onclick="cmpRun()" disabled>▶ Run Comparison</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="cmpProgress" style="display:none" class="card" style="margin-bottom:16px">
-        <div class="card-bd">
-          <div class="progress-bar-bg"><div class="progress-bar-fill" id="cmpFill"></div></div>
-          <div class="progress-log" id="cmpLog"></div>
-        </div>
-      </div>
-
-      <div id="cmpResults" style="display:none">
-        <div class="cmp-kpi-grid">
-          <div class="kpi-card" style="--kc:var(--blue)"><div class="kpi-n" id="kFiles">0</div><div class="kpi-l">Files Compared</div><div class="kpi-sub" id="kFilesSub"></div></div>
-          <div class="kpi-card" style="--kc:var(--t2)"><div class="kpi-n" id="kTotal">0</div><div class="kpi-l">Total Rows</div></div>
-          <div class="kpi-card" style="--kc:var(--amber)"><div class="kpi-n" id="kIncon">0</div><div class="kpi-l">Inconsistent</div><div class="kpi-sub" id="kInconSub"></div></div>
-          <div class="kpi-card" style="--kc:var(--green)"><div class="kpi-n" id="kCons">0</div><div class="kpi-l">Consistent</div><div class="kpi-sub" id="kConsSub"></div></div>
-        </div>
-
-        <div class="cmp-tabs">
-          <div class="cmp-tab active" data-tab="all" onclick="cmpTab('all')">All Parameters <span class="cmp-tab-badge" id="badgeAll">0</span></div>
-          <div class="cmp-tab" data-tab="incon" onclick="cmpTab('incon')">⚠ Inconsistencies <span class="cmp-tab-badge" id="badgeIncon">0</span></div>
-          <div class="cmp-tab" data-tab="summary" onclick="cmpTab('summary')">Summary</div>
-          <div style="margin-left:auto;display:flex;gap:8px">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="cmpExport(C.allRows,'RAN_Config_All')">⬇ Export All</button>
-            <button type="button" class="btn btn-amber btn-sm" onclick="cmpExport(C.inconRows,'RAN_Config_Inconsistent')">⬇ Export Inconsistent</button>
-          </div>
-        </div>
-
-        <div id="cmpTabAll">
-          <div class="cmp-toolbar">
-            <input type="text" class="cmp-search" id="searchAll" placeholder="Search path or parameter…" oninput="cmpApplyFilter()">
-            <select class="cmp-select" id="filterFile" onchange="cmpApplyFilter()"><option value="">All files</option></select>
-          </div>
-          <div class="table-scroll" id="tableAll"></div>
-          <div class="tbl-footer"><div id="countAll"></div><div style="display:flex;gap:6px"><button class="pg-btn" id="pgAllPrev" onclick="cmpPage('all',-1)" disabled>← Prev</button><button class="pg-btn" id="pgAllNext" onclick="cmpPage('all',1)" disabled>Next →</button></div></div>
-        </div>
-        <div id="cmpTabIncon" style="display:none">
-          <div class="cmp-toolbar">
-            <input type="text" class="cmp-search" id="searchIncon" placeholder="Search path or parameter…" oninput="cmpFilterIncon()">
-          </div>
-          <div class="table-scroll" id="tableIncon"></div>
-          <div class="tbl-footer"><div id="countIncon"></div><div style="display:flex;gap:6px"><button class="pg-btn" id="pgInconPrev" onclick="cmpPage('incon',-1)" disabled>← Prev</button><button class="pg-btn" id="pgInconNext" onclick="cmpPage('incon',1)" disabled>Next →</button></div></div>
-        </div>
-        <div id="cmpTabSummary" style="display:none">
-          <div class="cmp-summary-grid" id="summaryGrid"></div>
-        </div>
-      </div>
-    </div><!-- /comparator page -->
-
-    <!-- ═══════════════════════════════════════════
-         ADMIN PAGE
-    ═══════════════════════════════════════════ -->
-    <div class="page" id="page-admin">
-      <div id="adminLoginWrap">
-        <div class="admin-login-wrap">
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">🛡 Admin Authentication</div></div>
-            <div class="card-bd">
-              <div class="form-group"><label>Admin Password</label><input type="password" class="form-input" id="adminPwInput" placeholder="Enter admin password"></div>
-              <div class="form-group"><label>Admin PIN</label><input type="password" class="form-input" id="adminPinInput" placeholder="4-digit PIN" maxlength="6" onkeydown="if(event.key==='Enter')adminLogin()"></div>
-              <div class="lock-err" id="adminLoginErr"></div>
-              <button type="button" class="btn btn-primary" onclick="adminLogin()">🔐 Enter Admin Panel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="adminPanelWrap" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-          <div>
-            <div style="font-family:var(--display);font-size:1.1rem;font-weight:700;color:var(--t1)">Admin Panel</div>
-            <div style="font-size:.72rem;color:var(--t3);font-family:var(--mono)">NOKIA RAN Parameter Suite R1.0 — Restricted</div>
-          </div>
-          <button type="button" class="btn btn-danger btn-sm" onclick="adminLogout()">↩ Exit Admin</button>
-        </div>
-
-        <!-- User Manager -->
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-hd">
-            <div class="card-hd-t">👥 User Manager</div>
-            <div style="display:flex;gap:6px">
-              <button type="button" class="btn btn-amber btn-sm" onclick="umExportToExcel()">📥 Export xlsx</button>
-              <button type="button" class="btn btn-primary btn-sm" onclick="showAddUser()">+ Add User</button>
-            </div>
-          </div>
-          <div class="card-bd" style="padding:12px 16px">
-            <div class="alert alert-i" style="margin-bottom:12px">
-              <span>ℹ</span>
-              <span>Add users here, then copy their credentials into <strong>RAN_Users.xlsx</strong> on OneDrive. The tool reads that file at login. Passwords are auto-generated — strong, random, easy to share.</span>
-            </div>
-            <div id="userMgrList" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto"></div>
-            <div id="userMgrEmpty" style="text-align:center;padding:24px;color:var(--t3);font-family:var(--mono);font-size:.72rem">No users generated yet — click + Add User to create credentials</div>
-          </div>
-        </div>
-
-        <!-- Usage Tracker -->
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-hd">
-            <div class="card-hd-t">📋 Usage Tracker</div>
-            <div style="display:flex;gap:8px">
-              <button type="button" class="btn btn-ghost btn-sm" onclick="adminClearLog()">🗑 Clear Log</button>
-              <button type="button" class="btn btn-amber btn-sm" onclick="adminExportTracker()">📊 Export Excel</button>
-            </div>
-          </div>
-          <div style="overflow:auto;max-height:400px">
-            <table class="tracker-table" id="trackerTable">
-              <thead><tr><th>#</th><th>Timestamp</th><th>Username</th><th>Tool</th><th>Action</th><th>Files Loaded</th><th>File Names</th><th>Parameters Changed</th><th>MO Path</th><th>Old Value</th><th>New Value</th><th>Downloads</th></tr></thead>
-              <tbody id="trackerTbody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="admin-grid">
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">🔒 Security Settings</div></div>
-            <div class="card-bd">
-              <div class="section-hd" style="color:var(--cyan);border-color:var(--cyan)">Integration URLs</div>
-              <div class="form-group">
-                <label>OneDrive Users CSV URL</label>
-                <input type="text" class="form-input" id="cfgUsersUrl" placeholder="https://onedrive.live.com/download?..." style="font-size:.72rem">
-              </div>
-              <div class="form-group">
-                <label>Google Sheets Log URL</label>
-                <input type="text" class="form-input" id="cfgLogUrl" placeholder="https://script.google.com/macros/s/..." style="font-size:.72rem">
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:14px">
-                <button type="button" class="btn btn-ghost btn-sm" onclick="cfgSave()" style="flex:1;justify-content:center">💾 Save & Enable</button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="cfgDisable()" style="flex:1;justify-content:center">⊘ Disable</button>
-              </div>
-              <div id="cfgStatus" style="font-family:var(--mono);font-size:.68rem;padding:7px 10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);margin-bottom:14px">Status: Not configured — using local admin login only</div>
-              <div class="sdiv"></div>
-              <div class="section-hd">Change Admin Password</div>
-              <div class="form-group"><label>Current Password</label><input type="password" class="form-input" id="curPw" placeholder="Current password"></div>
-              <div class="form-group"><label>New Password</label><input type="password" class="form-input" id="newPw" placeholder="New password"></div>
-              <div class="form-group"><label>Confirm New Password</label><input type="password" class="form-input" id="confirmPw" placeholder="Confirm new password"></div>
-              <button type="button" class="btn btn-primary" onclick="adminChangePw()" style="width:100%;justify-content:center">Update Password</button>
-              <div class="sdiv"></div>
-              <div class="section-hd">Change Admin PIN</div>
-              <div class="form-group"><label>Current PIN</label><input type="password" class="form-input" id="curPin" placeholder="Current PIN" maxlength="6"></div>
-              <div class="form-group"><label>New PIN</label><input type="password" class="form-input" id="newPin" placeholder="New PIN (4-6 digits)" maxlength="6"></div>
-              <button type="button" class="btn btn-primary" onclick="adminChangePin()" style="width:100%;justify-content:center">Update PIN</button>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-hd"><div class="card-hd-t">📊 Stats Overview</div></div>
-            <div class="card-bd">
-              <div id="adminStats"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div><!-- /admin page -->
-
-  </div><!-- /main -->
-</div><!-- /app -->
-
-<!-- Add User Modal -->
-<div class="modal-bg" id="addUserModal" style="display:none;z-index:900">
-  <div class="modal-box" style="max-width:520px">
-    <div class="modal-hd">
-      <span style="font-family:var(--display);font-weight:700;font-size:.9rem">👤 Add New User</span>
-      <button type="button" class="modal-close" onclick="closeAddUser()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" class="form-input" id="auUser" placeholder="e.g. john.doe or John Doe" oninput="auPreview()">
-      </div>
-      <div class="form-group">
-        <label>Role</label>
-        <select class="form-input" id="auRole" style="cursor:pointer">
-          <option value="User">User</option>
-          <option value="Admin">Admin</option>
-          <option value="Engineer">Engineer</option>
-          <option value="Viewer">Viewer</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Notes (optional — your reference only)</label>
-        <input type="text" class="form-input" id="auNotes" placeholder="e.g. Field Engineer — NY region">
-      </div>
-      <!-- Password preview -->
-      <div style="padding:12px 14px;background:var(--s3);border:1px solid var(--b1);border-radius:8px;margin-bottom:14px">
-        <div style="font-size:.65rem;font-family:var(--mono);color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Auto-generated Password</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-family:var(--mono);font-size:.85rem;color:var(--cyan);flex:1;letter-spacing:.05em" id="auPwPreview">—</span>
-          <button type="button" class="copy-btn" onclick="auRefreshPw()" title="Generate new password">↻ New</button>
-        </div>
-        <div style="font-size:.62rem;color:var(--t3);font-family:var(--mono);margin-top:5px">Strong 12-character password — letters, numbers, symbol</div>
-      </div>
-      <button type="button" class="btn btn-primary" onclick="auCreate()" style="width:100%;justify-content:center;margin-bottom:14px">✓ Create User</button>
-      <!-- Result card -->
-      <div id="auResult" style="display:none">
-        <div style="height:1px;background:var(--b1);margin-bottom:14px"></div>
-        <div style="font-size:.7rem;font-family:var(--mono);color:var(--green);font-weight:600;margin-bottom:8px">✅ User created — copy credentials to share:</div>
-        <div style="padding:14px;background:var(--s3);border:1px solid rgba(16,185,129,.3);border-radius:8px;font-family:var(--mono);font-size:.78rem;line-height:2">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <span style="color:var(--t3)">Username: </span><span style="color:var(--t1);font-weight:600" id="auResUser"></span><br>
-              <span style="color:var(--t3)">Password: </span><span style="color:var(--cyan);font-weight:600" id="auResPw"></span><br>
-              <span style="color:var(--t3)">Role:     </span><span style="color:var(--t2)" id="auResRole"></span>
-            </div>
-            <button class="copy-btn" onclick="auCopyCredentials()" style="align-self:flex-start">Copy All</button>
-          </div>
-        </div>
-        <div style="margin-top:10px;padding:9px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;font-size:.68rem;font-family:var(--mono);color:var(--amber)">
-          ⚠ Also add this user to <strong>RAN_Users.xlsx</strong> on OneDrive so they can log in from any computer.
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1004,12 +510,16 @@ async function fetchUsers(){
     // Find header row to handle files with BOM or extra whitespace
     var dataLines = lines.slice(1);
     _usersCache = dataLines.map(function(l){
-      var parts = l.split(',').map(function(s){return s.replace(/^[\s"]+|[\s"]+$/g,'');});
+      // Strip Windows carriage returns and clean each field
+      var clean = l.replace(/\r/g,'');
+      var parts = clean.split(',').map(function(s){
+        return s.replace(/^[\s"]+|[\s"]+$/g,'').trim();
+      });
       return {
         username: parts[0]||'',
         password: parts[1]||'',
         role:     parts[2]||'User',
-        active:  (parts[3]||'Yes').toLowerCase()
+        active:  (parts[3]||'Yes').replace(/\r/g,'').trim().toLowerCase()
       };
     }).filter(function(u){ return u.username && u.username !== 'Username'; });
     _usersCacheTs = Date.now();
@@ -1031,8 +541,9 @@ function validateUserLocal(username, password){
     return u.username.toLowerCase() === username.toLowerCase() && u.password === password;
   });
   if(lu){
-    if((lu.active||'Yes').toLowerCase() !== 'yes')
-      return {valid:false, reason:'Account is inactive. Contact administrator.'};
+    var luActive = (lu.active||'Yes').replace(/\s|\r/g,'').toLowerCase();
+    if(luActive !== 'yes')
+      return {valid:false, reason:'Your account has been deactivated. Contact administrator.'};
     return {valid:true, role:lu.role||'User'};
   }
 
@@ -1079,16 +590,21 @@ async function doLogin(){
           return u.username.toLowerCase() === user.toLowerCase() && u.password === pass;
         });
         if(u){
-          if(u.active !== 'yes' && u.active !== 'true' && u.active !== '1')
-            result = {valid:false, reason:'Account is inactive. Contact administrator.'};
+          // Strict active check — only 'yes' grants access
+          // Anything else (No, FALSE, blank, 0) = blocked
+          var isActive = (u.active||'').replace(/\s|\r/g,'').toLowerCase() === 'yes';
+          if(!isActive)
+            result = {valid:false, reason:'Your account has been deactivated. Contact administrator.'};
           else
             result = {valid:true, role:u.role||'User'};
         } else {
           result = {valid:false, reason:'Username or password is incorrect.'};
         }
       } else {
-        // OneDrive fetch failed — fall back to local
-        result = validateUserLocal(user, pass);
+        // OneDrive fetch failed — deny access
+        // Do not fall back to local when OneDrive is configured
+        // This prevents deactivated users from sneaking in via fallback
+        result = {valid:false, reason:'Unable to verify credentials. Please try again.'};
       }
     } else {
       // Auth not configured — use local admin check
@@ -1150,8 +666,9 @@ function startSessionCheck(){
       var u = users.find(function(u){
         return u.username.toLowerCase() === SESSION.username.toLowerCase();
       });
-      // Kick out if: user not found, deactivated, or password changed
-      if(!u || u.active !== 'yes'){
+      // Kick out if: user not found or deactivated
+      var stillActive = u && (u.active||'').replace(/\s|\r/g,'').toLowerCase() === 'yes';
+      if(!stillActive){
         clearInterval(_sessionCheckInterval);
         toast('Your account has been deactivated. You will be signed out.', 'err');
         setTimeout(function(){
@@ -2003,83 +1520,62 @@ function updateDashStats(){
 // ═══════════════════════════════════════════════════════════════
 // ADMIN BOOTSTRAP (pre-login token manager on lock screen)
 // ═══════════════════════════════════════════════════════════════
-function openAdminBootstrap(){
-  $('bsPwInput').value='';$('bsPinInput').value='';$('bsErr').textContent='';
-  $('bootstrapAuthWrap').style.display='';$('bootstrapPanelWrap').style.display='none';
-  $('bsGenForm').style.display='none';$('bsGenResult').style.display='none';
-  var d=new Date();d.setDate(d.getDate()+90);$('bsGenExpiry').value=d.toISOString().slice(0,10);
-  $('bootstrapModal').style.display='flex';
-}
-function closeBootstrap(){$('bootstrapModal').style.display='none';}
-
-function bsLogin(){
-  var pw=($('bsPwInput').value||'').trim(),pin=($('bsPinInput').value||'').trim();
-  var storedPw=getLs(ADMIN_PW_KEY,DEFAULT_PW),storedPin=getLs(ADMIN_PIN_KEY,DEFAULT_PIN);
-  $('bsErr').textContent='';
-  if(pw!==storedPw||pin!==storedPin){$('bsErr').textContent='Incorrect password or PIN.';return;}
-  $('bootstrapAuthWrap').style.display='none';$('bootstrapPanelWrap').style.display='';
-  bsRenderTokenList();
+// ═══════════════════════════════════════════════════════════════
+// ADMIN LOGIN MODAL (lock screen shortcut → Admin Panel)
+// ═══════════════════════════════════════════════════════════════
+function openAdminLogin(){
+  $('alUser').value='admin'; $('alPass').value=''; $('alErr').textContent='';
+  $('adminLoginModal').style.display='flex';
+  setTimeout(function(){ $('alPass').focus(); }, 100);
 }
 
-function showBsGenForm(){
-  $('bsGenForm').style.display=$('bsGenForm').style.display==='none'?'':'none';
-  $('bsGenResult').style.display='none';$('bsGenUser').value='';$('bsGenNotes').value='';
+function closeAdminLogin(){
+  $('adminLoginModal').style.display='none';
 }
 
-function bsGenToken(){
-  var user=($('bsGenUser').value||'').trim(), notes=$('bsGenNotes').value;
-  if(!user){toast('Username is required.','err');return;}
-  var pw = genPassword();
-  // Add to local user list
-  var entry={username:user,password:pw,role:'User',notes:notes,active:'Yes',created:new Date().toISOString()};
-  _userList.push(entry); setLs('ran_userlist',_userList);
-  $('bsTokenOut').textContent='Username: '+user+'  |  Password: '+pw;
-  $('bsGenResult').style.display='';
-  bsRenderTokenList();
-  renderUserMgrList();
-}
+async function doAdminLogin(){
+  var user = ($('alUser').value||'').trim();
+  var pass = ($('alPass').value||'').trim();
+  $('alErr').textContent='';
+  if(!pass){ $('alErr').textContent='Password is required.'; return; }
 
-function bsCopyToken(){
-  navigator.clipboard.writeText($('bsTokenOut').textContent)
-    .then(function(){toast('Token copied!','ok');})
-    .catch(function(){toast('Select and copy manually.','inf');});
-}
+  var storedPw  = getLs(ADMIN_PW_KEY,  DEFAULT_PW);
+  var storedPin = getLs(ADMIN_PIN_KEY, DEFAULT_PIN);
 
-function bsRenderTokenList(){
-  $('bsTokenCount').textContent=_userList.length+' user(s) created this session';
-  var lst=$('bsTokenList');
-  if(!_userList.length){
-    lst.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-family:var(--mono);font-size:.7rem">No users yet. Add one above.</div>';
+  // Validate — admin username + password
+  if(user !== 'admin' || pass !== storedPw){
+    $('alErr').textContent='Incorrect username or password.';
     return;
   }
-  lst.innerHTML='';
-  var rev=[].concat(_userList).reverse();
-  rev.forEach(function(u,i){
-    var div=document.createElement('div');
-    div.style.cssText='padding:9px 12px;background:var(--s3);border:1px solid var(--b1);border-radius:7px;display:flex;align-items:center;gap:8px;margin-bottom:4px';
-    div.innerHTML='<div style="flex:1;min-width:0">'
-      +'<div style="font-size:.74rem;font-weight:600;color:var(--t1)">'+esc(u.username)
-      +'  <span style="font-size:.6rem;color:var(--t3)">'+esc(u.role)+'</span></div>'
-      +'<div style="font-family:var(--mono);font-size:.68rem;color:var(--cyan);margin-top:2px">'+esc(u.password)+'</div>'
-      +'</div>'
-      +'<button class="copy-btn" data-u="'+esc(u.username)+'" data-p="'+esc(u.password)+'" style="font-size:.62rem">Copy</button>';
-    var btn=div.querySelector('button');
-    btn.addEventListener('click',function(){
-      var txt='Username: '+this.dataset.u+'\nPassword: '+this.dataset.p;
-      navigator.clipboard.writeText(txt).then(function(){toast('Copied!','ok');}).catch(function(){toast('Copy manually.','inf');});
-    });
-    lst.appendChild(div);
-  });
+
+  // Close modal and log in as admin
+  closeAdminLogin();
+  SESSION.username = 'admin'; SESSION.role = 'Admin'; SESSION.loggedIn = true;
+  logActivity('Login','Admin Panel Access','—','—','—','—','—',0);
+  var stats=getLs(STATS_KEY,{sessions:0,edits:0,compares:0,downloads:0});
+  stats.sessions=(stats.sessions||0)+1; setLs(STATS_KEY,stats);
+  showApp('admin',{role:'Admin'});
+  // Navigate directly to Admin Panel
+  setTimeout(function(){
+    navTo('admin');
+    // Auto-fill admin credentials and open the panel
+    var pwEl=$('adminPwInput'), pinEl=$('adminPinInput');
+    if(pwEl) pwEl.value=pass;
+    if(pinEl) pinEl.value=storedPin;
+    adminLogin();
+  }, 300);
 }
 
-// bsRevoke removed — no longer using tokens
+// Keep old names as aliases (referenced in event listeners)
+function openAdminBootstrap(){ openAdminLogin(); }
+function closeBootstrap(){ closeAdminLogin(); }
 document.addEventListener('click',function(e){
   if(e.target.id==='genModal') closeGenModal();
   if(e.target.id==='previewModal') $('previewModal').classList.remove('open');
-  if(e.target.id==='bootstrapModal') $('bootstrapModal').style.display='none';
+  if(e.target.id==='adminLoginModal') $('adminLoginModal').style.display='none';
 });
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){closeGenModal();$('previewModal').classList.remove('open');closeBootstrap();}
+  if(e.key==='Escape'){closeGenModal();$('previewModal').classList.remove('open');closeAdminLogin();}
 });
 
 // ═══════════════════════════════════════════════════════════════

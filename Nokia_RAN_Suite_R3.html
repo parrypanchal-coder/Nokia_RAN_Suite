@@ -469,7 +469,7 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
         <span class="nav-icon">🔍</span><span class="nav-label">XML Comparator</span>
       </div>
       <div class="nav-section">System</div>
-      <div class="nav-item" onclick="navTo('admin')" id="nav-admin">
+      <div class="nav-item" onclick="navTo('admin')" id="nav-admin" style="display:none">
         <span class="nav-icon">🛡</span><span class="nav-label">Admin Panel</span>
       </div>
       <div class="nav-item" onclick="doLogout()" style="margin-top:4px">
@@ -1125,8 +1125,10 @@ function showApp(user, result){
   var td=$('tokenExpDisplay'); if(td) td.textContent='Role: '+role;
   var ub=$('userBadge');       if(ub){ ub.textContent=role; ub.classList.remove('expiring'); }
   var ti=$('topbarTokenInfo'); if(ti){ ti.textContent='Signed in as '+user+' · '+role; ti.classList.remove('exp'); }
+  // Show Admin Panel nav only for admin user
+  var navAdmin = $('nav-admin');
+  if(navAdmin) navAdmin.style.display = (user === 'admin') ? '' : 'none';
   updateDashStats(); renderTracker();
-  // Start session re-validation — checks OneDrive every 60 seconds
   startSessionCheck();
 }
 
@@ -1167,10 +1169,16 @@ function doLogout(){
   stopSessionCheck();
   logActivity('Logout','System','—','—','—','—','—',0);
   SESSION = {username:'',role:'',loggedIn:false};
+  ADMIN_AUTHED = false;
   _usersCache = null;
+  // Hide admin nav for next login
+  var navAdmin=$('nav-admin'); if(navAdmin) navAdmin.style.display='none';
   var lu=$('loginUser'); if(lu) lu.value='';
   var lp=$('loginPass'); if(lp) lp.value='';
   var le=$('loginErr');  if(le) le.textContent='';
+  // Reset admin panel state
+  var aw=$('adminLoginWrap');  if(aw) aw.style.display='';
+  var ap=$('adminPanelWrap');  if(ap) ap.style.display='none';
   $('app').style.display='none';
   $('lockScreen').style.display='flex';
 }
@@ -1187,14 +1195,21 @@ function navTo(page){
   var titles = {dashboard:'Dashboard',editor:'Parameter Editor',comparator:'XML Comparator',admin:'Admin Panel'};
   $('topbarTitle').textContent = titles[page]||page;
   if(page==='admin'){
-    // Auto-unlock admin panel if logged in as admin — no double password needed
-    if(SESSION.username === 'admin' && !ADMIN_AUTHED){
-      ADMIN_AUTHED = true;
-      $('adminLoginWrap').style.display='none';
-      $('adminPanelWrap').style.display='block';
-      renderUserMgrList(); renderTracker(); cfgUpdateStatus();
+    if(SESSION.username === 'admin'){
+      // Admin user — auto-unlock, no second password needed
+      if(!ADMIN_AUTHED){
+        ADMIN_AUTHED = true;
+        $('adminLoginWrap').style.display='none';
+        $('adminPanelWrap').style.display='block';
+        renderUserMgrList(); renderTracker(); cfgUpdateStatus();
+      }
+      renderAdminStats();
+    } else {
+      // Non-admin user should never reach admin page
+      // Redirect them to dashboard silently
+      navTo('dashboard');
+      return;
     }
-    renderAdminStats();
   }
 }
 
@@ -2096,15 +2111,12 @@ async function doAdminLogin(){
   // Close modal, set session, go directly to admin panel
   closeAdminLogin();
   SESSION.username = 'admin'; SESSION.role = 'Admin'; SESSION.loggedIn = true;
-  ADMIN_AUTHED = true; // Mark admin as authenticated — skip double password
+  ADMIN_AUTHED = true; // Set BEFORE showApp and navTo — prevents double prompt
   logActivity('Login','Admin Panel Access','—','—','—','—','—',0);
   var stats=getLs(STATS_KEY,{sessions:0,edits:0,compares:0,downloads:0});
   stats.sessions=(stats.sessions||0)+1; setLs(STATS_KEY,stats);
   showApp('admin',{role:'Admin'});
-  // Navigate directly to Admin Panel — already authenticated
-  setTimeout(function(){
-    navTo('admin');
-  }, 200);
+  setTimeout(function(){ navTo('admin'); }, 200);
 }
 
 // Keep old names as aliases (referenced in event listeners)

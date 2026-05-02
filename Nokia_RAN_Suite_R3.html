@@ -818,11 +818,13 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
                 <label>Google Sheets Log URL</label>
                 <input type="text" class="form-input" id="cfgLogUrl" placeholder="https://script.google.com/macros/s/..." style="font-size:.72rem">
               </div>
-              <div style="display:flex;gap:8px;margin-bottom:14px">
+              <div style="display:flex;gap:8px;margin-bottom:8px">
                 <button type="button" class="btn btn-ghost btn-sm" onclick="cfgSave()" style="flex:1;justify-content:center">💾 Save & Enable</button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="cfgDisable()" style="flex:1;justify-content:center">⊘ Disable</button>
               </div>
-              <div id="cfgStatus" style="font-family:var(--mono);font-size:.68rem;padding:7px 10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);margin-bottom:14px">Status: Not configured</div>
+              <button type="button" class="btn btn-amber btn-sm" onclick="cfgTest()" style="width:100%;justify-content:center;margin-bottom:10px">🧪 Test Connection & Show Users</button>
+              <div id="cfgStatus" style="font-family:var(--mono);font-size:.68rem;padding:7px 10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);margin-bottom:6px">Status: Not configured</div>
+              <div id="cfgTestResult" style="display:none;font-family:var(--mono);font-size:.68rem;padding:10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t2);margin-bottom:8px;max-height:160px;overflow-y:auto;white-space:pre-wrap"></div>
               <div class="sdiv"></div>
               <div class="section-hd">Change Admin Password</div>
               <div class="form-group"><label>Current Password</label><input type="password" class="form-input" id="curPw" placeholder="Current password"></div>
@@ -1302,11 +1304,13 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
                 <label>Google Sheets Log URL</label>
                 <input type="text" class="form-input" id="cfgLogUrl" placeholder="https://script.google.com/macros/s/..." style="font-size:.72rem">
               </div>
-              <div style="display:flex;gap:8px;margin-bottom:14px">
+              <div style="display:flex;gap:8px;margin-bottom:8px">
                 <button type="button" class="btn btn-ghost btn-sm" onclick="cfgSave()" style="flex:1;justify-content:center">💾 Save & Enable</button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="cfgDisable()" style="flex:1;justify-content:center">⊘ Disable</button>
               </div>
-              <div id="cfgStatus" style="font-family:var(--mono);font-size:.68rem;padding:7px 10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);margin-bottom:14px">Status: Not configured</div>
+              <button type="button" class="btn btn-amber btn-sm" onclick="cfgTest()" style="width:100%;justify-content:center;margin-bottom:10px">🧪 Test Connection & Show Users</button>
+              <div id="cfgStatus" style="font-family:var(--mono);font-size:.68rem;padding:7px 10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);margin-bottom:6px">Status: Not configured</div>
+              <div id="cfgTestResult" style="display:none;font-family:var(--mono);font-size:.68rem;padding:10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t2);margin-bottom:8px;max-height:160px;overflow-y:auto;white-space:pre-wrap"></div>
               <div class="sdiv"></div>
               <div class="section-hd">Change Admin Password</div>
               <div class="form-group"><label>Current Password</label><input type="password" class="form-input" id="curPw" placeholder="Current password"></div>
@@ -1523,34 +1527,37 @@ async function doLogin(){
   var result;
   try{
     if(CFG.authEnabled && CFG.usersUrl.indexOf('PASTE_') === -1){
-      // Fetch from OneDrive Excel
+      // Step 1: Try OneDrive Excel first
       var users = await fetchUsers();
-      if(users){
+      if(users && users.length > 0){
         var u = users.find(function(u){
           return u.username.toLowerCase() === user.toLowerCase() && u.password === pass;
         });
         if(u){
-          // Strict active check — only 'yes' grants access
-          // Anything else (No, FALSE, blank, 0) = blocked
           var isActive = (u.active||'').replace(/\s|\r/g,'').toLowerCase() === 'yes';
           if(!isActive)
             result = {valid:false, reason:'Your account has been deactivated. Contact administrator.'};
           else
             result = {valid:true, role:u.role||'User'};
         } else {
-          result = {valid:false, reason:'Username or password is incorrect.'};
+          // Not found in OneDrive — check local list (admin-created users)
+          result = validateUserLocal(user, pass);
         }
       } else {
-        // OneDrive fetch failed — deny access
-        // Do not fall back to local when OneDrive is configured
-        // This prevents deactivated users from sneaking in via fallback
-        result = {valid:false, reason:'Unable to verify credentials. Please try again.'};
+        // OneDrive fetch failed or empty — fall back to local list
+        // This covers: network issues, wrong URL, OneDrive not configured yet
+        result = validateUserLocal(user, pass);
+        // If local also fails, give a helpful message
+        if(!result.valid && result.reason === 'Username or password is incorrect.'){
+          result.reason = 'Username or password is incorrect. (OneDrive unavailable — using local users only)';
+        }
       }
     } else {
-      // Auth not configured — use local admin check
+      // Auth not yet configured — use local admin + local user list
       result = validateUserLocal(user, pass);
     }
   }catch(e){
+    console.warn('Login error:', e.message);
     result = validateUserLocal(user, pass);
   }
 
@@ -1710,6 +1717,40 @@ function logToGoogle(data){
 // ═══════════════════════════════════════════════════════════════
 // INTEGRATION CONFIG ADMIN FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
+async function cfgTest(){
+  var el = $('cfgTestResult');
+  el.style.display='';
+  el.style.color='var(--t2)';
+  el.textContent='⏳ Testing connection…';
+  var url = ($('cfgUsersUrl').value||CFG.usersUrl||'').trim();
+  if(!url || url.indexOf('PASTE_')===0){
+    el.textContent='⚠ No URL configured. Enter the OneDrive CSV URL above first.';
+    el.style.color='var(--amber)';
+    return;
+  }
+  try{
+    var resp = await fetch(url + '?t=' + Date.now(), {cache:'no-store'});
+    if(!resp.ok){ el.textContent='✗ HTTP Error: ' + resp.status + ' — URL may be wrong or file not shared.'; el.style.color='var(--red)'; return; }
+    var text = await resp.text();
+    var lines = text.trim().split('\n');
+    if(lines.length < 2){ el.textContent='⚠ File fetched but appears empty or has no data rows.\n\nRaw content:\n'+text.slice(0,200); el.style.color='var(--amber)'; return; }
+    // Parse and show users
+    var dataLines = lines.slice(1);
+    var users = dataLines.map(function(l){
+      var clean=l.replace(/\r/g,'');
+      var parts=clean.split(',').map(function(s){return s.replace(/^[\s"]+|[\s"]+$/g,'').trim();});
+      return {username:parts[0],active:(parts[3]||'Yes').replace(/\r/g,'').trim()};
+    }).filter(function(u){return u.username && u.username!=='Username';});
+    el.style.color='var(--green)';
+    el.textContent='✅ Connection OK — found '+users.length+' user(s):\n\n'+
+      users.map(function(u){return '  • '+u.username+' (Active: '+u.active+')';}).join('\n')+
+      '\n\nHeader row: '+lines[0].replace(/\r/g,'');
+  }catch(e){
+    el.style.color='var(--red)';
+    el.textContent='✗ Fetch failed: '+e.message+'\n\nThis usually means:\n  1. URL is wrong\n  2. File is not shared publicly\n  3. CORS blocked — try a different sharing method';
+  }
+}
+
 function cfgSave(){
   var uUrl=($('cfgUsersUrl').value||'').trim();
   var lUrl=($('cfgLogUrl').value||'').trim();

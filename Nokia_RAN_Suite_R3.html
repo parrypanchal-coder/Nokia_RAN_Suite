@@ -761,7 +761,7 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
           </div>
           <div style="overflow:auto;max-height:400px">
             <table class="tracker-table" id="trackerTable">
-              <thead><tr><th>#</th><th>Timestamp</th><th>Username</th><th>Tool</th><th>Action</th><th>Files Loaded</th><th>File Names</th><th>Parameters Changed</th><th>MO Path</th><th>Old Value</th><th>New Value</th><th>Downloads</th></tr></thead>
+              <thead><tr><th>#</th><th>Timestamp (MT)</th><th>Username</th><th>Tool</th><th>Action</th><th>Files Loaded</th><th>File Names</th><th>Parameters Changed</th><th>MO Path</th><th>Old Value</th><th>New Value</th><th>Downloads</th></tr></thead>
               <tbody id="trackerTbody"></tbody>
             </table>
           </div>
@@ -947,7 +947,15 @@ function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,
 function $(id){ return document.getElementById(id); }
 function fmt(n){ return Number(n).toLocaleString(); }
 function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }catch(e){ return iso||'—'; } }
-function fmtTs(iso){ try{ return new Date(iso).toLocaleString(); }catch(e){ return iso||'—'; } }
+function fmtTs(ts){
+  try{
+    // If already formatted MT string, return as-is
+    if(ts && ts.indexOf('T')<0 && ts.indexOf('Z')<0) return ts;
+    return new Date(ts).toLocaleString('en-US',{timeZone:'America/Denver',
+      year:'numeric',month:'2-digit',day:'2-digit',
+      hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  }catch(e){ return ts||'—'; }
+}
 function getLs(key,def){
   try{ if(_store){var v=_store.getItem(key);return v!==null?JSON.parse(v):def;} return key in _mem?_mem[key]:def; }catch(e){return def;}
 }
@@ -1104,7 +1112,7 @@ async function doLogin(){
 
   if(!result.valid){
     $('loginErr').textContent = result.reason || 'Access denied.';
-    logToGoogle({ event:'login_failed', username:user, ts:new Date().toISOString(),
+    logToGoogle({ event:'login_failed', username:user, ts:getMTTime(),
                   tool:'—', action:'Login Failed', fileNames:'—', paramName:'—',
                   moPath:'—', oldVal:'—', newVal:'—', downloads:0 });
     return;
@@ -1235,9 +1243,19 @@ function toggleTheme(){
 // ═══════════════════════════════════════════════════════════════
 // ACTIVITY LOGGER
 // ═══════════════════════════════════════════════════════════════
+function getMTTime(){
+  // Mountain Time (America/Denver) — auto handles MST/MDT
+  return new Date().toLocaleString('en-US', {
+    timeZone: 'America/Denver',
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit',
+    hour12: false
+  }).replace(',','');
+}
+
 function logActivity(tool, action, fileNames, paramName, moPath, oldVal, newVal, downloads){
   var entry = {
-    ts:        new Date().toISOString(),
+    ts:        getMTTime(),
     username:  SESSION.username || '—',
     tool:      tool,
     action:    action,
@@ -1985,7 +2003,7 @@ function auCreate(){
   var existing = _userList.find(function(u){ return u.username.toLowerCase()===user.toLowerCase(); });
   if(existing){ toast('Username "'+user+'" already exists in this list.','err'); return; }
   var entry = { username:user, password:pw, role:role, notes:notes,
-                active:'Yes', created:new Date().toISOString() };
+                active:'Yes', created:getMTTime() };
   _userList.push(entry);
   setLs('ran_userlist', _userList);
   // Show result
@@ -2053,26 +2071,29 @@ function renderUserMgrList(){
   var list  = $('userMgrList');
   var empty = $('userMgrEmpty');
   if(!list) return;
+  // Sync _userList with storage
+  _userList = getLs('ran_userlist', []);
   if(!_userList.length){
-    if(list)  list.innerHTML='';
+    list.innerHTML='';
     if(empty) empty.style.display='block';
     return;
   }
   if(empty) empty.style.display='none';
   list.innerHTML = _userList.map(function(u,i){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--s3);border:1px solid var(--b1);border-radius:7px;font-family:var(--mono);font-size:.72rem">'
-      +'<span style="font-weight:600;color:var(--t1);flex:0 0 140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(u.username)+'</span>'
-      +'<span style="color:var(--cyan);flex:0 0 160px">'+esc(u.password)+'</span>'
-      +'<span style="color:var(--t3);flex:0 0 70px">'+esc(u.role)+'</span>'
-      +'<span style="color:var(--t3);flex:1;font-size:.65rem">'+esc(u.notes||'')+'</span>'
+    var activeColor = (u.active||'Yes').toLowerCase()==='yes' ? 'var(--green)' : 'var(--red)';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--s3);border:1px solid var(--b1);border-radius:7px;font-family:var(--mono);font-size:.72rem">'
+      +'<span style="font-weight:600;color:var(--t1);flex:0 0 130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(u.username)+'">'+esc(u.username)+'</span>'
+      +'<span style="color:var(--cyan);flex:0 0 140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(u.password)+'</span>'
+      +'<span style="color:var(--t3);flex:0 0 65px;font-size:.65rem">'+esc(u.role||'User')+'</span>'
+      +'<span style="color:'+activeColor+';flex:0 0 30px;font-size:.65rem">'+(( u.active||'Yes').toLowerCase()==='yes'?'✓':'✗')+'</span>'
+      +'<span style="color:var(--t3);flex:1;font-size:.64rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(u.notes||'')+'</span>'
       +'<button class="copy-btn" onclick="umCopy('+i+')" title="Copy credentials">Copy</button>'
-      +'<button class="copy-btn" onclick="umDelete(idx)" title="Remove">&#x2715;</button>'
+      +'<button class="copy-btn" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="umDelete('+i+')" title="Delete user">✕</button>'
       +'</div>';
   }).join('');
 }
 
-function adminRevokeToken(idx){ umDelete(idx); }
-function adminDeleteToken(idx){ umDelete(idx); }
+// adminRevokeToken and adminDeleteToken removed — use umDelete directly
 
 function adminDeleteToken(idx){
   var tokens=_userList;

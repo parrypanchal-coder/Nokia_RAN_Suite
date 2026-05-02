@@ -809,22 +809,6 @@ input[type=checkbox]{accent-color:var(--blue);width:12px;height:12px;cursor:poin
           <div class="card">
             <div class="card-hd"><div class="card-hd-t">🔒 Security Settings</div></div>
             <div class="card-bd">
-              <div class="section-hd" style="color:var(--cyan);border-color:var(--cyan)">Integration URLs</div>
-              <div class="form-group">
-                <label>OneDrive Users CSV URL</label>
-                <input type="text" class="form-input" id="cfgUsersUrl" placeholder="https://..." style="font-size:.72rem">
-              </div>
-              <div class="form-group">
-                <label>Google Sheets Log URL</label>
-                <input type="text" class="form-input" id="cfgLogUrl" placeholder="https://script.google.com/macros/s/..." style="font-size:.72rem">
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:8px">
-                <button type="button" class="btn btn-ghost btn-sm" onclick="cfgSave()" style="flex:1;justify-content:center">💾 Save & Enable</button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="cfgDisable()" style="flex:1;justify-content:center">⊘ Disable</button>
-              </div>
-              <button type="button" class="btn btn-amber btn-sm" onclick="cfgTest()" style="width:100%;justify-content:center;margin-bottom:10px">🧪 Test Connection & Show Users</button>
-              <div id="cfgStatus" style="font-family:var(--mono);font-size:.68rem;padding:7px 10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);margin-bottom:6px">Status: Not configured</div>
-              <div id="cfgTestResult" style="display:none;font-family:var(--mono);font-size:.68rem;padding:10px;border-radius:6px;background:var(--s3);border:1px solid var(--b1);color:var(--t2);margin-bottom:8px;max-height:160px;overflow-y:auto;white-space:pre-wrap"></div>
               <div class="sdiv"></div>
               <div class="section-hd">Change Admin Password</div>
               <div class="form-group"><label>Current Password</label><input type="password" class="form-input" id="curPw" placeholder="Current password"></div>
@@ -1446,15 +1430,31 @@ async function fetchUsers(){
   // Always fetch fresh — no cache
   if(!CFG.usersUrl || CFG.usersUrl.indexOf('PASTE_') === 0) return null;
   try{
-    var resp = await fetch(CFG.usersUrl + '?t=' + Date.now(), {cache:'no-store'});
+    // Build URL correctly — handle URLs that already have query params
+    var sep = CFG.usersUrl.indexOf('?') >= 0 ? '&' : '?';
+    var resp = await fetch(CFG.usersUrl + sep + 't=' + Date.now(), {cache:'no-store'});
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     var text = await resp.text();
-    // Parse CSV — expect header: Username,Password,Role,Active
+    // Try JSON first (Google Sheets Apps Script returns JSON array)
+    try {
+      var parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        _usersCache = parsed.map(function(u){
+          return {
+            username: String(u.username||'').trim(),
+            password: String(u.password||'').trim(),
+            role:     String(u.role||'User').trim(),
+            active:   String(u.active||'yes').trim().toLowerCase()
+          };
+        }).filter(function(u){ return u.username; });
+        _usersCacheTs = Date.now();
+        return _usersCache;
+      }
+    } catch(je) { /* not JSON — fall through to CSV parsing */ }
+    // CSV fallback
     var lines = text.trim().split('\n');
-    // Find header row to handle files with BOM or extra whitespace
     var dataLines = lines.slice(1);
     _usersCache = dataLines.map(function(l){
-      // Strip Windows carriage returns and clean each field
       var clean = l.replace(/\r/g,'');
       var parts = clean.split(',').map(function(s){
         return s.replace(/^[\s"]+|[\s"]+$/g,'').trim();
@@ -1724,30 +1724,51 @@ async function cfgTest(){
   el.textContent='⏳ Testing connection…';
   var url = ($('cfgUsersUrl').value||CFG.usersUrl||'').trim();
   if(!url || url.indexOf('PASTE_')===0){
-    el.textContent='⚠ No URL configured. Enter the OneDrive CSV URL above first.';
+    el.textContent='⚠ No URL configured. Enter the Google Sheets URL with ?action=getUsers above first.';
     el.style.color='var(--amber)';
     return;
   }
   try{
-    var resp = await fetch(url + '?t=' + Date.now(), {cache:'no-store'});
-    if(!resp.ok){ el.textContent='✗ HTTP Error: ' + resp.status + ' — URL may be wrong or file not shared.'; el.style.color='var(--red)'; return; }
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    var resp = await fetch(url + sep + 't=' + Date.now(), {cache:'no-store'});
+    if(!resp.ok){ el.textContent='✗ HTTP Error: ' + resp.status; el.style.color='var(--red)'; return; }
     var text = await resp.text();
-    var lines = text.trim().split('\n');
-    if(lines.length < 2){ el.textContent='⚠ File fetched but appears empty or has no data rows.\n\nRaw content:\n'+text.slice(0,200); el.style.color='var(--amber)'; return; }
-    // Parse and show users
-    var dataLines = lines.slice(1);
-    var users = dataLines.map(function(l){
-      var clean=l.replace(/\r/g,'');
-      var parts=clean.split(',').map(function(s){return s.replace(/^[\s"]+|[\s"]+$/g,'').trim();});
-      return {username:parts[0],active:(parts[3]||'Yes').replace(/\r/g,'').trim()};
-    }).filter(function(u){return u.username && u.username!=='Username';});
+    // Try JSON (Google Sheets format)
+    var users = [];
+    try {
+      var parsed = JSON.parse(text);
+      if(Array.isArray(parsed)){
+        users = parsed.filter(function(u){ return u.username; });
+      } else {
+        // Got base script response — ?action=getUsers missing
+        el.textContent='⚠ Got wrong response — URL missing ?action=getUsers\n\nYour URL must end with:\n  /exec?action=getUsers\n\nReceived: '+text.slice(0,150);
+        el.style.color='var(--amber)';
+        return;
+      }
+    } catch(je){
+      // Try CSV
+      var lines = text.trim().split('\n');
+      if(lines.length < 2){
+        el.textContent='⚠ No data rows found.\nRaw: '+text.slice(0,300);
+        el.style.color='var(--amber)';
+        return;
+      }
+      users = lines.slice(1).map(function(l){
+        var p=l.replace(/\r/g,'').split(',').map(function(s){return s.replace(/^[\s"]+|[\s"]+$/g,'').trim();});
+        return {username:p[0],active:p[3]||'yes'};
+      }).filter(function(u){return u.username && u.username!=='Username';});
+    }
+    if(!users.length){
+      el.textContent='⚠ Connected but no users found.\nCheck the Users tab has data starting from row 2.\nRaw: '+text.slice(0,200);
+      el.style.color='var(--amber)';
+      return;
+    }
     el.style.color='var(--green)';
     el.textContent='✅ Connection OK — found '+users.length+' user(s):\n\n'+
-      users.map(function(u){return '  • '+u.username+' (Active: '+u.active+')';}).join('\n')+
-      '\n\nHeader row: '+lines[0].replace(/\r/g,'');
+      users.map(function(u){return '  • '+u.username+' (Active: '+(u.active||'yes')+')';}).join('\n');
   }catch(e){
     el.style.color='var(--red)';
-    el.textContent='✗ Fetch failed: '+e.message+'\n\nThis usually means:\n  1. URL is wrong\n  2. File is not shared publicly\n  3. CORS blocked — try a different sharing method';
+    el.textContent='✗ Fetch failed: '+e.message+'\n\n'+(url.indexOf('script.google.com')>=0?'Google Apps Script URL detected — this should work. Check deployment settings (Who has access = Anyone).':'Unexpected error.');
   }
 }
 
